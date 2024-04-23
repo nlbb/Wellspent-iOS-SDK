@@ -1,7 +1,7 @@
 import XCTest
-@testable import Wellspent_iOS_SDK
+@testable import WellspentSDK
 
-final class Wellspent_iOS_SDKTests: XCTestCase {
+final class WellspentSDKTests: XCTestCase {
     func testExample() throws {
         // XCTest Documentation
         // https://developer.apple.com/documentation/xctest

@@ -1,23 +1,34 @@
 // swift-tools-version: 5.9
-// The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
-    name: "Wellspent-iOS-SDK",
+    name: "WellspentSDK",
+    platforms: [
+        .iOS(.v14),
+    ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "Wellspent-iOS-SDK",
-            targets: ["Wellspent-iOS-SDK"]),
+            name: "WellspentSDK",
+            targets: ["WellspentSDK"]
+        ),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "Wellspent-iOS-SDK"),
+            name: "RuntimeLog"
+        ),
+        .target(
+            name: "WellspentSDK",
+            dependencies: [
+                "RuntimeLog"
+            ],
+            resources: [
+                .copy("PrivacyInfo.xcprivacy")
+            ]
+        ),
         .testTarget(
-            name: "Wellspent-iOS-SDKTests",
-            dependencies: ["Wellspent-iOS-SDK"]),
+            name: "WellspentSDKTests",
+            dependencies: ["WellspentSDK"]
+        ),
     ]
 )
