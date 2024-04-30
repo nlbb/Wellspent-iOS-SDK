@@ -5,12 +5,16 @@ import PackageDescription
 let package = Package(
     name: "WellspentSDK",
     platforms: [
-        .iOS(.v14),
+        .iOS(.v17),
     ],
     products: [
         .library(
             name: "WellspentSDK",
             targets: ["WellspentSDK"]
+        ),
+        .library(
+            name: "RuntimeLog",
+            targets: ["RuntimeLog"]
         ),
     ],
     targets: [
@@ -20,7 +24,7 @@ let package = Package(
         .target(
             name: "WellspentSDK",
             dependencies: [
-                "RuntimeLog"
+                .target(name: "RuntimeLog")
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
@@ -28,7 +32,9 @@ let package = Package(
         ),
         .testTarget(
             name: "WellspentSDKTests",
-            dependencies: ["WellspentSDK"]
+            dependencies: [ 
+                .target(name: "WellspentSDK")
+            ]
         ),
     ]
 )
