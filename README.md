@@ -102,11 +102,11 @@ Usually this call should be initiated in response some user action, such as
 tapping a "Connect" button.
 
 ```swift
-let properties = WellspentProperties(
+let properties = WellspentSDKProperties(
     userId: "user123",
     trackedProperties: ["userLevel": "10"]
 )
-WellspentSDK.shared.presentOnboarding(with: properties) { error in
+WellspentSDK.shared.presentOnboarding(using: properties) { error in
     if let error {
         // Handle connection error
     } else {

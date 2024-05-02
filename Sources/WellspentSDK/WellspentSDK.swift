@@ -151,12 +151,12 @@ public final class WellspentSDK {
             try ensureSupported()
             let configuration = try ensureConfigured()
 
-            if let userId = properties.userId {
-                identify(as: userId)
-            }
             // TODO: Store trackedProperties in private plist
+            //     if let userId = properties.userId {
+            //         identify(as: userId)
+            //      }
 
-            var url = URL(string: "https://deploy-preview-6--wellspent-api.netlify.app")!
+            var url = URL(string: "https://appclip.apple.com/id?=co.mindamins.wellspent.Clip")!
             let queryItems: [URLQueryItem] = [
                 URLQueryItem(name: "partnerId", value: configuration.partnerId),
                 URLQueryItem(name: "localizedAppName", value: configuration.localizedAppName),
