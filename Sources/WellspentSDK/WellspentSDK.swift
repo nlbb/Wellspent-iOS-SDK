@@ -53,6 +53,10 @@ public final class WellspentSDK {
     @available(iOS 16.0, *)
     private var plistDict: [String: String] {
         get {
+            let fm = FileManager()
+            guard fm.fileExists(atPath: plistPath) else {
+                return [:]
+            }
             let dict = NSDictionary(contentsOfFile: plistPath)
             guard let dict = dict else {
                 ws_assertionFailure("Persistent user data is malformed.")
