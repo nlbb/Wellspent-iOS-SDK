@@ -50,7 +50,7 @@ public final class WellspentSDK {
         return path.appendingPathComponent("WellspentSDK.plist").path
     }
 
-    @available(iOS 16.0, *)
+    @available(iOS 17.0, *)
     private var plistDict: [String: String] {
         get {
             let fm = FileManager()
@@ -81,7 +81,7 @@ public final class WellspentSDK {
         }
     }
 
-    @available(iOS 16.0, *)
+    @available(iOS 17.0, *)
     private var storedUserId: String? {
         get {
             plistDict["userId"]
@@ -102,7 +102,7 @@ public final class WellspentSDK {
     public func identify(
         as userId: String
     ) -> WellspentSDKUserIdentificationResult {
-        guard #available(iOS 16, *) else {
+        guard #available(iOS 17, *) else {
             return .unsupported
         }
         if userId == storedUserId {
@@ -118,7 +118,7 @@ public final class WellspentSDK {
     /// has a user experiennce, allowing users to logout.
     ///
     public func logout() {
-        guard #available(iOS 16, *) else {
+        guard #available(iOS 17, *) else {
             return
         }
         storedUserId = nil
