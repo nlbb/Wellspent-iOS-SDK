@@ -164,6 +164,7 @@ public final class WellspentSDK {
             let queryItems: [URLQueryItem] = [
                 URLQueryItem(name: "partnerId", value: configuration.partnerId),
                 URLQueryItem(name: "localizedAppName", value: configuration.localizedAppName),
+                URLQueryItem(name: "redirectionURL", value: configuration.redirectionURL.absoluteString),
             ]
             url.append(queryItems: queryItems)
 
@@ -243,13 +244,16 @@ public struct WellspentSDKConfiguration {
     //let apiKey: String
     let partnerId: String
     let localizedAppName: String
+    let redirectionURL: URL
 
     public init(
         partnerId: String,
-        localizedAppName: String
+        localizedAppName: String,
+        redirectionURL: URL
     ) {
         self.partnerId = partnerId
         self.localizedAppName = localizedAppName
+        self.redirectionURL = redirectionURL
     }
 }
 
