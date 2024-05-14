@@ -55,8 +55,20 @@ struct WellspentSDKConfiguration {
     //let apiKey: String // TODO: Omitted for now
     let partnerId: String
     let localizedAppName: String
+    let redirectionURL: URL
 }
 ```
+
+> [!CAUTION]
+> The `redirectionURL` must be correctly configured in your app.
+> This can be a [Universal Link](https://developer.apple.com/documentation/xcode/supporting-universal-links-in-your-app),
+> which also works on the web in case your app is not installed anymore,
+> or a [Link with a Custom URL Scheme](https://developer.apple.com/documentation/xcode/defining-a-custom-url-scheme-for-your-app).
+> In either case, the URL must be correctly configured and should allow to open
+> your app seamlessly without any additional steps.
+> This is used by the Wellspent app to launch your app after an intervention,
+> e.g. while the user is scrolling on social media.
+> So ideally you will provide a deep link to a habit or exercise within your app.
 
 ## Integrating the Swift SDK
 
