@@ -160,7 +160,7 @@ public final class WellspentSDK {
             //         identify(as: userId)
             //      }
 
-            var url = URL(string: "https://appclip.apple.com/id?=co.mindamins.wellspent.Clip")!
+            var url = URL(string: "https://appclip.apple.com/id?p=co.mindamins.wellspent.Clip")!
             let queryItems: [URLQueryItem] = [
                 URLQueryItem(name: "partnerId", value: configuration.partnerId),
                 URLQueryItem(name: "localizedAppName", value: configuration.localizedAppName),
