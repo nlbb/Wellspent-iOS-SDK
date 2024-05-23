@@ -160,7 +160,7 @@ public final class WellspentSDK {
             //         identify(as: userId)
             //      }
 
-            var url = URL(string: "https://appclip.apple.com/id?p=co.mindamins.wellspent.Clip")!
+            var url = configuration.appClipURL
             let queryItems: [URLQueryItem] = [
                 URLQueryItem(name: "partnerId", value: configuration.partnerId),
                 URLQueryItem(name: "localizedAppName", value: configuration.localizedAppName),
@@ -246,15 +246,59 @@ public struct WellspentSDKConfiguration {
     let localizedAppName: String
     let redirectionURL: URL
 
+    /// This is `.production` by default.
+    ///
+    /// - Warning: This is only supposed to be used for internal development.
+    ///   Do not change this in a production build of your app unless explicitly advised.
+    ///
+    let environment: WellspentSDKEnvironment
+
+    /// This is `true` by default, meaning that the App Clip will be launched
+    /// via a web URL which links to the App Clip to be opened.
+    ///
+    /// - Warning: This is only supposed to be used for internal development.
+    ///   Do not change this in a production build of your app unless explicitly advised.
+    ///
+    let isUsingUniversalLinks: Bool
+
     public init(
         partnerId: String,
         localizedAppName: String,
-        redirectionURL: URL
+        redirectionURL: URL,
+        environment: WellspentSDKEnvironment = .production,
+        isUsingUniversalLinks: Bool = true
     ) {
         self.partnerId = partnerId
         self.localizedAppName = localizedAppName
         self.redirectionURL = redirectionURL
+        self.environment = environment
+        self.isUsingUniversalLinks = isUsingUniversalLinks
     }
+
+    var appClipURL: URL {
+        switch environment {
+        case .production:
+            if isUsingUniversalLinks {
+                return URL(string: "https://wellspent-api.netlify.app/")!
+            } else {
+                return URL(string: "https://appclip.apple.com/id?p=co.mindamins.wellspent.Clip")!
+            }
+        case .staging:
+            return URL(string: "https://appclip.apple.com/id?p=com.nlbb.Salomone.Clip")!
+        }
+    }
+}
+
+public enum WellspentSDKEnvironment {
+    /// The Wellspent production environment.
+    case production
+
+    /// The Wellspent staging environment.
+    ///
+    /// - Warning: This is only supposed to be used for internal development.
+    ///   Do not change this in a production build of your app unless explicitly advised.
+    ///
+    case staging
 }
 
 public struct WellspentSDKProperties {
