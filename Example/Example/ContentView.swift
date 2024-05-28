@@ -71,7 +71,9 @@ struct ContentView: View {
 
                 Button(
                     action: {
-                        WellspentSDK.shared.identify(as: userId)
+                        handleSDKErrors {
+                            try WellspentSDK.shared.identify(as: userId)
+                        }
                     },
                     label: {
                         Label(

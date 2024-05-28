@@ -6,6 +6,9 @@ public final class WellspentSDK {
     public static let shared = WellspentSDK()
 
     var configuration: WellspentSDKConfiguration?
+    var api: WellspentAPI?
+    var store = PersistentStore()
+    private var authenticationTask: Task<String, any Error>?
 
     /// - Returns: `true` if the WellspentSDK does support connecting
     ///   the Wellspent app on  this device and if and only if the Wellspent app itself
@@ -34,61 +37,16 @@ public final class WellspentSDK {
     ) throws {
         guard Self.isSupported else { return }
         guard !configuration.partnerId.isEmpty else {
-            throw WellspentSDKError.invalidSDKConfiguration
+            throw WellspentSDKError.state(.invalidSDKConfiguration)
         }
         guard !configuration.localizedAppName.isEmpty else {
-            throw WellspentSDKError.invalidSDKConfiguration
+            throw WellspentSDKError.state(.invalidSDKConfiguration)
         }
         self.configuration = configuration
-    }
-
-    private var plistPath: String {
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        guard let path = paths.first else {
-            ws_preconditionFailure("Path for persistent user data could not be formed.")
-        }
-        return path.appendingPathComponent("WellspentSDK.plist").path
-    }
-
-    @available(iOS 17.0, *)
-    private var plistDict: [String: String] {
-        get {
-            let fm = FileManager()
-            guard fm.fileExists(atPath: plistPath) else {
-                return [:]
-            }
-            let dict = NSDictionary(contentsOfFile: plistPath)
-            guard let dict = dict else {
-                ws_assertionFailure("Persistent user data is malformed.")
-                return [:]
-            }
-            return dict.reduce(into: [:]) { dict, item in
-                let (key, value) = item
-                guard let key = key as? String, let value = value as? String else {
-                    ws_assertionFailure("Persistent user data is malformed.")
-                    return
-                }
-                dict[key] = value
-            }
-        }
-        set {
-            let dict = newValue as NSDictionary
-            do {
-                try dict.write(to: URL(filePath: plistPath))
-            } catch {
-                ws_runtimeWarning("Could not persist user data.")
-            }
-        }
-    }
-
-    @available(iOS 17.0, *)
-    private var storedUserId: String? {
-        get {
-            plistDict["userId"]
-        }
-        set {
-            plistDict["userId"] = newValue
-        }
+        self.api = WellspentAPI(
+            partnerId: configuration.partnerId,
+            environment: configuration.environment
+        )
     }
 
     /// This can be also achieved  by just calling `presentOnboarding` with the `userId`
@@ -101,15 +59,39 @@ public final class WellspentSDK {
     @discardableResult
     public func identify(
         as userId: String
-    ) -> WellspentSDKUserIdentificationResult {
+    ) throws -> WellspentSDKUserIdentificationResult {
         guard #available(iOS 17, *) else {
             return .unsupported
         }
-        if userId == storedUserId {
+
+        /// If the user ID has not changed, we don't need to request a new token
+        if userId == store.userId {
             return .known
         }
-        storedUserId = userId
-        return .mismatched
+        let isNew = store.userId != nil
+
+        /// Store the user ID
+        store.storeUserId(userId)
+
+        /// Cancel in-flight task if there is any
+        authenticationTask?.cancel()
+        authenticationTask = nil
+
+        /// Start a new task to authenticate
+        authenticationTask = Task {
+            let token = try await authenticateUser(id: userId)
+            authenticationTask = nil
+            return token
+        }
+
+        return isNew ? .new : .mismatched
+    }
+
+    private func authenticateUser(id userId: String) async throws -> String {
+        let api = try ensureAPI()
+        let token = try await api.authenticateUser(id: userId)
+        store.storePartnerToken(token)
+        return token
     }
 
     /// Logout tears the connection between this user and the Wellspent app.
@@ -118,13 +100,9 @@ public final class WellspentSDK {
     /// has a user experiennce, allowing users to logout.
     ///
     public func logout() {
-        guard #available(iOS 17, *) else {
-            return
-        }
-        storedUserId = nil
+        store.clearCredentials()
     }
 
-    // TODO: Document when this method returns
     // TODO: Document when the completion handler is being called
     /// Presents the partner-specific onboarding to establish
     /// a connection to the Wellspent app.
@@ -137,48 +115,68 @@ public final class WellspentSDK {
     /// In case of configurations errors, the completion handler can be called
     /// synchronously with an error.
     ///
+    /// This method will return after basic configuration checks.
+    /// This method runs an asynchronous detached task, which will
+    /// eventually launch a task on the `MainActor` to open a deep link.
+    ///
     /// - Parameter properties: Properties to be passed to the Wellspent app.
     ///   These will be passed to the App Clip or the App via URL query parameters.
     /// - Parameter completion: A completion handler that will be called when opening
     ///   the App Clip or the App was successful.
     ///
-    @MainActor
     public func presentOnboarding(
         using properties: WellspentSDKProperties = WellspentSDKProperties(),
-        completion: @escaping (Error?) -> Void
+        completion: @escaping (WellspentSDKError?) -> Void
     ) {
+        @Sendable func propagateError(_ error: Error) {
+            let error = WellspentSDKError(error)
+            Task { @MainActor in
+                completion(error)
+            }
+        }
+
         do {
             guard #available(iOS 17, *) else {
-                throw WellspentSDKError.sdkIsNotSupported
+                throw WellspentSDKError.state(.sdkIsNotSupported)
             }
 
             try ensureSupported()
             let configuration = try ensureConfigured()
 
-            // TODO: Store trackedProperties in private plist
-            //     if let userId = properties.userId {
-            //         identify(as: userId)
-            //      }
+            Task {
+                // TODO: Store trackedProperties in private plist
 
-            var url = configuration.appClipURL
-            let queryItems: [URLQueryItem] = [
-                URLQueryItem(name: "partnerId", value: configuration.partnerId),
-                URLQueryItem(name: "localizedAppName", value: configuration.localizedAppName),
-                URLQueryItem(name: "redirectionURL", value: configuration.redirectionURL.absoluteString),
-            ]
-            url.append(queryItems: queryItems)
-
-            // TODO: Check if Wellspent is installed
-
-            UIApplication.shared.open(url, options: [:]) { wasSuccessful in
-                if !wasSuccessful {
-                    completion(WellspentSDKError.appClipCouldNotBeLaunched)
+                let token: String
+                do {
+                    token = try await ensurePartnerToken()
+                } catch {
+                    propagateError(error)
                     return
                 }
-                completion(nil)
+
+                Task { @MainActor in
+                    var url = configuration.appClipURL
+                    let queryItems: [URLQueryItem] = [
+                        URLQueryItem(name: "partnerId", value: configuration.partnerId),
+                        URLQueryItem(name: "localizedAppName", value: configuration.localizedAppName),
+                        URLQueryItem(name: "redirectionURL", value: configuration.redirectionURL.absoluteString),
+                        URLQueryItem(name: "token", value: token),
+                    ]
+                    url.append(queryItems: queryItems)
+
+                    // TODO: Check if Wellspent is installed
+
+                    UIApplication.shared.open(url, options: [:]) { wasSuccessful in
+                        if !wasSuccessful {
+                            completion(.state(.appClipCouldNotBeLaunched))
+                            return
+                        }
+                        completion(nil)
+                    }
+                }
             }
         } catch {
-            completion(error)
+            propagateError(error)
             return
         }
     }
@@ -191,33 +189,98 @@ public final class WellspentSDK {
         // TODO: Not implemented yet.
     }
 
-    /// Send HTTP request to Wellspent backend.
-    public func completeDailyGoal() {
-        // TODO: Not implemented yet.
+    /// Send an asynchronous HTTPS request to the Wellspent backend, which will be propagated
+    /// to the Wellspent app to change the intervention behavior, so that the user doesn't see any
+    /// further reminders about their daily habit.
+    ///
+    public func completeDailyHabit() async throws {
+        let api = try ensureAPI()
+        let token = try await ensurePartnerToken()
+        try await api.completeDailyHabit(partnerToken: token)
     }
 }
 
 extension WellspentSDK {
     private func ensureSupported() throws {
         guard Self.isSupported else {
-            throw WellspentSDKError.sdkIsNotSupported
+            throw WellspentSDKError.state(.sdkIsNotSupported)
         }
     }
 
     @discardableResult
     private func ensureConfigured() throws -> WellspentSDKConfiguration {
         guard let configuration else {
-            throw WellspentSDKError.sdkIsNotConfigured
+            throw WellspentSDKError.state(.sdkIsNotConfigured)
         }
         return configuration
+    }
+
+    private func ensureAPI() throws -> WellspentAPI {
+        guard let api else {
+            throw WellspentSDKError.state(.sdkIsNotConfigured)
+        }
+        return api
+    }
+
+    internal func ensureUserId() throws -> String {
+        guard let userId = store.userId else {
+            throw WellspentSDKError.state(.userIsNotIdentified)
+        }
+        return userId
+    }
+
+    private func ensurePartnerToken() async throws -> String {
+        if let task = authenticationTask {
+            /// If a task is in-flight, that takes precedence.
+            return try await task.value
+        } else if let token = store.partnerToken {
+            /// Otherwise fallback to an existing token.
+            return token
+        } else {
+            /// If there is no token, then request one.
+            let userId = try ensureUserId()
+            let task = Task {
+                try await authenticateUser(id: userId)
+            }
+            authenticationTask = task
+            return try await task.value
+        }
     }
 }
 
 public enum WellspentSDKError: Error {
+    case state(WellspentSDKStateError)
+    case api(WellspentAPIError)
+    case network(URLError)
+    case unknown(underlying: NSError)
+
+    public init(_ error: Error) {
+        switch error {
+        case let stateError as WellspentSDKStateError:
+            self = .state(stateError)
+        case let apiError as WellspentAPIError:
+            self = .api(apiError)
+        case let nsError as NSError where nsError.domain == NSURLErrorDomain:
+            self = .network(URLError(_nsError: nsError))
+        default:
+            self = .unknown(underlying: error as NSError)
+        }
+    }
+
+    internal static func api(
+        request: WellspentAPIRequest,
+        error: WellspentAPIRequestError
+    ) -> Self {
+        .api(WellspentAPIError(request: request, error: error))
+    }
+}
+
+public enum WellspentSDKStateError: Error {
     case sdkIsNotSupported
     case sdkIsNotConfigured
     case invalidSDKConfiguration
     case malformedSDKData
+    case userIsNotIdentified
     case appClipCouldNotBeLaunched
 }
 
@@ -230,6 +293,10 @@ public enum WellspentSDKUserIdentificationResult {
     /// The user is known to the SDK because the user ID matches the stored user ID,
     /// which was stored when the current user has established a connection before.
     case known
+
+    /// The user is not known to the SDK, but no user was previously logged in.
+    ///
+    case new
 
     /// The user is not known to the SDK and the user ID doesn't match with the previously
     /// stored user ID.
@@ -299,6 +366,16 @@ public enum WellspentSDKEnvironment {
     ///   Do not change this in a production build of your app unless explicitly advised.
     ///
     case staging
+
+    var apiBaseURL: URL {
+        switch self {
+        case .production:
+            // TODO: Add production URL
+            return URL(string: "https://")!
+        case .staging:
+            return URL(string: "https://salomone-f1c40.web.app")!
+        }
+    }
 }
 
 public struct WellspentSDKProperties {
