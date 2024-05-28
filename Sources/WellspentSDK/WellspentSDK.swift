@@ -256,6 +256,8 @@ public enum WellspentSDKError: Error {
 
     public init(_ error: Error) {
         switch error {
+        case let sdkError as WellspentSDKError:
+            self = sdkError
         case let stateError as WellspentSDKStateError:
             self = .state(stateError)
         case let apiError as WellspentAPIError:
