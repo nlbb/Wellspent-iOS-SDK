@@ -42,7 +42,8 @@ internal final class WellspentAPI {
 
     internal func authenticateUser(id partnerUserId: String) async throws -> String {
         let token = try await request(.createBearerToken) { url in
-            var request = URLRequest(url: url)
+            let workingURL = URL(string: "https://createbearertoken-5wj5kx4btq-ew.a.run.app")!
+            var request = URLRequest(url: workingURL)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
