@@ -74,7 +74,8 @@ internal final class WellspentAPI {
 
     internal func completeDailyHabit(partnerToken: String) async throws {
         return try await request(.completeDailyHabit) { url in
-            var request = URLRequest(url: url)
+            let workingURL = URL(string: "https://completedailyhabit-5wj5kx4btq-ew.a.run.app")!
+            var request = URLRequest(url: workingURL)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue("Bearer \(partnerToken)", forHTTPHeaderField: "Authorization")
