@@ -121,9 +121,9 @@ public enum WellspentAPIRequest {
     var path: String {
         switch self {
         case .createBearerToken:
-            return "/api/createBearerToken"
+            return "createBearerToken"
         case .completeDailyHabit:
-            return "/api/completeDailyHabit"
+            return "completeDailyHabit"
         }
     }
 }
