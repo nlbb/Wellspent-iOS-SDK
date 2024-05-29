@@ -102,6 +102,7 @@ struct ContentView: View {
             )
 
             Button(
+                role: .destructive,
                 action: {
                     WellspentSDK.shared.logout()
                 },
