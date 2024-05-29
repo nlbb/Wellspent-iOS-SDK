@@ -107,7 +107,7 @@ struct ContentView: View {
                 },
                 label: {
                     Label(
-                        title: { Text("Logut") },
+                        title: { Text("Logout") },
                         icon: { Image(systemName: "power") }
                     )
                 }
