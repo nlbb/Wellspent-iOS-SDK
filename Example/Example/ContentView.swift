@@ -18,7 +18,9 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(alignment: .leading) {
+            Spacer()
+
             if let errorMsg = errorMessage {
                 HStack {
                     Image(systemName: "exclamationmark.triangle")
@@ -101,6 +103,11 @@ struct ContentView: View {
                 }
             )
 
+
+            Spacer()
+
+            Divider()
+
             Button(
                 role: .destructive,
                 action: {
@@ -113,6 +120,8 @@ struct ContentView: View {
                     )
                 }
             )
+
+            Spacer()
         }
         .buttonStyle(.borderedProminent)
         .padding()
