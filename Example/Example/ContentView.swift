@@ -3,7 +3,7 @@ import WellspentSDK
 
 struct ContentView: View {
     @State
-    private var userId = ""
+    private var userId = "123"
 
     @State
     private var errorMessage: String?
