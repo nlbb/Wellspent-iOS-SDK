@@ -17,6 +17,15 @@ struct ContentView: View {
         }
     }
 
+    func handleAsyncSDKErrors(_ closure: () async throws -> ()) async {
+        do {
+            errorMessage = nil
+            try await closure()
+        } catch {
+            errorMessage = "\(error)"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading) {
             Spacer()
@@ -103,6 +112,21 @@ struct ContentView: View {
                 }
             )
 
+            Button(
+                action: {
+                    Task {
+                        await handleAsyncSDKErrors {
+                            try await WellspentSDK.shared.completeDailyHabit()
+                        }
+                    }
+                },
+                label: {
+                    Label(
+                        title: { Text("Complete Daily Habit") },
+                        icon: { Image(systemName: "checkmark.square.fill") }
+                    )
+                }
+            )
 
             Spacer()
 
