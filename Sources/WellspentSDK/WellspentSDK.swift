@@ -372,7 +372,7 @@ public enum WellspentSDKEnvironment {
     var apiBaseURL: URL {
         switch self {
         case .production:
-            return URL(string: "https://wellspent-app.web.app/api/v1")!
+            return URL(string: "https://wellspent-app.web.app/api/v1/")!
         case .staging:
             return URL(string: "https://salomone-f1c40.web.app/api/v1")!
         }
