@@ -2,8 +2,11 @@ import SwiftUI
 import WellspentSDK
 
 struct ContentView: View {
+    @State 
+    private var userId: String = UserDefaults.standard.string(forKey: "userId") ?? ""
+    
     @State
-    private var userId = "123"
+    private var isUserIdStored: Bool = UserDefaults.standard.string(forKey: "userId") != nil
 
     @State
     private var errorMessage: String?
@@ -27,8 +30,23 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Spacer()
+        VStack(alignment: .leading, spacing: 20) {
+            
+            Text("B2B Partner App:")
+                .font(.title)
+                .padding(.top, 20)
+            
+            Text(
+            """
+            Here are the steps to follow:
+            1. Tap Configure
+            2. Enter your user id and then tap identify - you won't be able to edit your user id after tapping identify.
+            3. Tap present onboarding - this shows the app clip.
+            4. Tap complete daily habit - emulates the success criteria.
+            """
+            )
+            .font(.caption)
+            .padding(.bottom, 20)
 
             if let errorMsg = errorMessage {
                 HStack {
@@ -58,7 +76,8 @@ struct ContentView: View {
                             with: WellspentSDKConfiguration(
                                 partnerId: "example",
                                 localizedAppName: "DailyWisdom",
-                                redirectionURL: URL(string: "dailyWisdom://daily")!
+                                redirectionURL: URL(string: "dailyWisdom://daily")!,
+                                environment: .staging
                             )
                         )
                     }
@@ -76,13 +95,20 @@ struct ContentView: View {
                 TextField(
                     text: $userId,
                     label: {
-                        Text("User ID")
+                        Text("Enter your user ID")
                     }
                 )
+                .disabled(isUserIdStored)
 
                 Button(
                     action: {
+                        
                         handleSDKErrors {
+                            if !isUserIdStored {
+                                let trimmedUserId = userId.replacingOccurrences(of: " ", with: "")
+                                UserDefaults.standard.set(trimmedUserId, forKey: "userId")
+                                userId = trimmedUserId
+                            }
                             try WellspentSDK.shared.identify(as: userId)
                         }
                     },
@@ -93,6 +119,7 @@ struct ContentView: View {
                         )
                     }
                 )
+                .disabled(userId.isEmpty)
             }
 
             Button(
