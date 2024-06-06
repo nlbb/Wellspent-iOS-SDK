@@ -353,7 +353,7 @@ public struct WellspentSDKConfiguration {
                 return URL(string: "https://appclip.apple.com/id?p=co.mindamins.wellspent.Clip")!
             }
         case .staging:
-            return URL(string: "https://appclip.apple.com/id?p=co.mindamins.wellspent.Clip")!
+            return URL(string: "https://appclip.apple.com/id?p=com.nlbb.Salomone.Clip")!
         }
     }
 }
