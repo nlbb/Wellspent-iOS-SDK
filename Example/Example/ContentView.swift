@@ -77,7 +77,7 @@ struct ContentView: View {
                                 partnerId: "example",
                                 localizedAppName: "DailyWisdom",
                                 redirectionURL: URL(string: "dailyWisdom://daily")!,
-                                environment: .staging
+                                isUsingUniversalLinks: false
                             )
                         )
                     }
