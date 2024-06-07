@@ -75,7 +75,7 @@ struct ContentView: View {
                         try WellspentSDK.shared.configure(
                             with: WellspentSDKConfiguration(
                                 partnerId: "example",
-                                localizedAppName: "DailyWisdom",
+                                localizedAppName: "Babbel",
                                 redirectionURL: URL(string: "dailyWisdom://daily")!,
                                 isUsingUniversalLinks: false
                             )
