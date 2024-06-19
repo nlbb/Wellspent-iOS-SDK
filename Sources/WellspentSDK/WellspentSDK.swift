@@ -148,7 +148,7 @@ public final class WellspentSDK {
 
                 let token: String
                 do {
-                    token = try await ensurePartnerToken()
+                    token = try await ensurePartnerToken(with: properties.userId)
                 } catch {
                     propagateError(error)
                     return
@@ -222,14 +222,22 @@ extension WellspentSDK {
         return api
     }
 
-    internal func ensureUserId() throws -> String {
-        guard let userId = store.userId else {
+    internal func ensureUserId(_ userId: String? = nil) throws -> String {
+        if let userId = userId {
+            if userId == store.userId {
+                return userId
+            }
+            store.storeUserId(userId)
+            return userId
+        }
+
+        guard let storedUserId = store.userId else {
             throw WellspentSDKError.state(.userIsNotIdentified)
         }
-        return userId
+        return storedUserId
     }
 
-    private func ensurePartnerToken() async throws -> String {
+    private func ensurePartnerToken(with userId: String? = nil) async throws -> String {
         if let task = authenticationTask {
             /// If a task is in-flight, that takes precedence.
             return try await task.value
@@ -238,7 +246,7 @@ extension WellspentSDK {
             return token
         } else {
             /// If there is no token, then request one.
-            let userId = try ensureUserId()
+            let userId = try ensureUserId(userId)
             let task = Task {
                 try await authenticateUser(id: userId)
             }
