@@ -35,12 +35,12 @@ extension WellspentSDK {
 
     func presentOnboarding(
         using properties: WellspentSDKProperties = WellspentSDKProperties(),
-        completion: @escaping (Error?) -> Void
+        completion: @escaping (WellspentSDKError?) -> Void
     )
 
     func receivedAppRedirect(with url: URL)
 
-    func completeDailyGoal()
+    func completeDailyHabit() async throws
 }
 ```
 
@@ -96,7 +96,8 @@ do {
     try WellspentSDK.shared.configure(
         with: WellspentSDKConfiguration(
             partnerId: "example",
-            localizedAppName: "Example App"
+            localizedAppName: "Example App",
+            redirectionURL: URL(string: "exampleApp://example")!
         )
     )
 } catch {
@@ -136,13 +137,23 @@ struct WellspentProperties {
 }
 ```
 
+Alternatively, you can handle user authentication explicitly by calling the `identify(as userId: String)` method. 
+This is useful in multi-user apps where a user can log out and log in with a different identity without needing to present onboarding again.
+
+```swift
+WellspentSDK.shared.identify(as: "user123")
+```
+
 ### 4. Handling Received Redirects
 
 When the Wellspent app redirects back to your app from a shield, you need to
-notify the SDK for proper functionality.
+notify the SDK for proper functionality. This can be achieved by calling the
+receivedAppRedirect(with: url) method in your AppDelegate or SceneDelegate.
+This ensures that the SDK is aware of the redirection and can process it accordingly.
 
 After this you should handle the deep link as needed.
 
+Example for AppDelegate:
 ```swift
 func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
     WellspentSDK.shared.receivedAppRedirect(with: url)
@@ -151,6 +162,26 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
 }
 ```
 
+#### Best Practices for URL Parsing
+To ensure seamless redirection and integration tracking, you should provide
+a unique deep link for the redirectionURL. This link should be recognizable as
+coming from Wellspent and allow for tracking and measuring the success of the Wellspent integration.
+
+Deep Link Example:
+```
+dailyWisdom://daily?wellspentUserId=123
+```
+
+#### Important Guidelines:
+1. **Use URL Parsing**: Avoid using regex for parsing the full URL to prevent errors and maintain flexibility.
+
+2. **Handle Extra Query Parameters Gracefully**: Ensure your URL parsing logic can
+handle additional query parameters without breaking. This allows for future
+extensions and modifications without impacting the existing functionality.
+
+Following these best practices will help ensure a smooth integration process
+and accurate tracking of user interactions driven by Wellspent.
+
 ### 5. Propagating goal completion
 
 On completion of the user's daily goal, you should propagate this back to the Wellspent backend.
@@ -158,7 +189,7 @@ This will trigger a cascade of background updates, which ensures that the interv
 consider that the user's daily goal was completed.
 
 ```swift
-WellspentSDK.shared.completeDailyGoal()
+WellspentSDK.shared.completeDailyHabit()
 ```
 
 Alternatively this can also happen as a server-to-server REST API call.
