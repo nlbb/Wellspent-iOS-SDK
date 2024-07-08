@@ -156,6 +156,7 @@ public final class WellspentSDK {
 
                 Task { @MainActor in
                     var url = configuration.appClipURL
+                    url.append(path: configuration.localizedAppName.lowercased())
                     let queryItems: [URLQueryItem] = [
                         URLQueryItem(name: "partnerId", value: configuration.partnerId),
                         URLQueryItem(name: "localizedAppName", value: configuration.localizedAppName),
