@@ -6,6 +6,9 @@ struct ContentView: View {
     private var userId = "123"
 
     @State
+    private var appName = ""
+
+    @State
     private var errorMessage: String?
 
     func handleSDKErrors(_ closure: () throws -> ()) {
@@ -51,13 +54,21 @@ struct ContentView: View {
                 .cornerRadius(6)
             }
 
+            TextField(
+                text: $appName,
+                label: {
+                    Text("Enter App Name")
+                }
+            )
+            .padding(.bottom)
+
             Button(
                 action: {
                     handleSDKErrors {
                         try WellspentSDK.shared.configure(
                             with: WellspentSDKConfiguration(
                                 partnerId: "example",
-                                localizedAppName: "DailyWisdom",
+                                localizedAppName: appName,
                                 redirectionURL: URL(string: "dailyWisdom://daily")!
                             )
                         )
@@ -71,6 +82,7 @@ struct ContentView: View {
 
                 }
             )
+            .disabled(appName.isEmpty)
 
             HStack {
                 TextField(
