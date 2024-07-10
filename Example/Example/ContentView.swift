@@ -6,7 +6,7 @@ struct ContentView: View {
     private var userId = "123"
 
     @State
-    private var appName = "Babbel"
+    private var appName = ""
 
     @State
     private var errorMessage: String?
