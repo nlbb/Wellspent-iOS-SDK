@@ -1,6 +1,9 @@
 import Foundation
+import LinkPresentation
 import RuntimeLog
 import UIKit
+import SwiftUI
+
 
 public final class WellspentSDK {
     public static let shared = WellspentSDK()
@@ -167,13 +170,7 @@ public final class WellspentSDK {
 
                     // TODO: Check if Wellspent is installed
 
-                    UIApplication.shared.open(url, options: [:]) { wasSuccessful in
-                        if !wasSuccessful {
-                            completion(.state(.appClipCouldNotBeLaunched))
-                            return
-                        }
-                        completion(nil)
-                    }
+                    presentAppClipModal(with: url)
                 }
             }
         } catch {
@@ -255,6 +252,19 @@ extension WellspentSDK {
             return try await task.value
         }
     }
+    
+    @available(iOS 15.0, *)
+    private func presentAppClipModal(with url: URL) {
+        guard let topViewController = UIApplication.shared.topViewController() else { return }
+        let rootViewController = UIHostingController(rootView: AppClipView(url: url))
+        rootViewController.view.backgroundColor = .clear
+
+        let customTransitioningDelegate = WSTransitioningDelegate()
+        rootViewController.modalPresentationStyle = .custom
+        rootViewController.transitioningDelegate = customTransitioningDelegate
+
+        topViewController.present(rootViewController, animated: true)
+    }
 }
 
 public enum WellspentSDKError: Error {
@@ -331,36 +341,23 @@ public struct WellspentSDKConfiguration {
     ///
     let environment: WellspentSDKEnvironment
 
-    /// This is `true` by default, meaning that the App Clip will be launched
-    /// via a web URL which links to the App Clip to be opened.
-    ///
-    /// - Warning: This is only supposed to be used for internal development.
-    ///   Do not change this in a production build of your app unless explicitly advised.
-    ///
-    let isUsingUniversalLinks: Bool
-
     public init(
         partnerId: String,
         localizedAppName: String,
         redirectionURL: URL,
-        environment: WellspentSDKEnvironment = .production,
-        isUsingUniversalLinks: Bool = true
+        environment: WellspentSDKEnvironment = .production
     ) {
         self.partnerId = partnerId
         self.localizedAppName = localizedAppName
         self.redirectionURL = redirectionURL
         self.environment = environment
-        self.isUsingUniversalLinks = isUsingUniversalLinks
     }
 
     var appClipURL: URL {
         switch environment {
         case .production:
-            if isUsingUniversalLinks {
-                return URL(string: "https://wellspent-api.netlify.app/")!
-            } else {
-                return URL(string: "https://appclip.apple.com/id?p=co.mindamins.wellspent.Clip")!
-            }
+            return URL(string: "https://wellspent-api.netlify.app/")!
+
         case .staging:
             return URL(string: "https://appclip.apple.com/id?p=com.nlbb.Salomone.Clip")!
         }
