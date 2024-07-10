@@ -354,13 +354,7 @@ public struct WellspentSDKConfiguration {
     }
 
     var appClipURL: URL {
-        switch environment {
-        case .production:
-            return URL(string: "https://wellspent-api.netlify.app/")!
-
-        case .staging:
-            return URL(string: "https://appclip.apple.com/id?p=com.nlbb.Salomone.Clip")!
-        }
+        URL(string: "https://wellspent-api.netlify.app/")!
     }
 }
 
