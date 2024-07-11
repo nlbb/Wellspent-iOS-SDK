@@ -194,3 +194,8 @@ WellspentSDK.shared.completeDailyHabit()
 
 Alternatively this can also happen as a server-to-server REST API call.
 Please contact us for more information on this.
+
+> [!CAUTION]
+Always initialize the WellspentSDK at app launch.
+If initialization at app launch is not possible, ensure it is done before calling any methods that interact with the SDK.
+i.e Make sure to call `configure(with: WellspentSDKConfiguration)` before calling `completeDailyHabit()`. 
