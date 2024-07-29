@@ -170,7 +170,7 @@ public final class WellspentSDK {
 
                     // TODO: Check if Wellspent is installed
 
-                    presentAppClipModal(with: url)
+                    presentAppClipModal(with: url, completion: completion)
                 }
             }
         } catch {
@@ -254,16 +254,30 @@ extension WellspentSDK {
     }
     
     @available(iOS 15.0, *)
-    private func presentAppClipModal(with url: URL) {
-        guard let topViewController = UIApplication.shared.topViewController() else { return }
-        let rootViewController = UIHostingController(rootView: AppClipView(url: url))
-        rootViewController.view.backgroundColor = .clear
+    private func presentAppClipModal(
+        with url: URL,
+        completion: @escaping (WellspentSDKError?) -> Void
+    ) {
+        if  let configuration,
+            configuration.isUsingUniversalLinks {
+            guard let topViewController = UIApplication.shared.topViewController() else { return }
+            let rootViewController = UIHostingController(rootView: AppClipView(url: url))
+            rootViewController.view.backgroundColor = .clear
 
-        let customTransitioningDelegate = WSTransitioningDelegate()
-        rootViewController.modalPresentationStyle = .custom
-        rootViewController.transitioningDelegate = customTransitioningDelegate
+            let customTransitioningDelegate = WSTransitioningDelegate()
+            rootViewController.modalPresentationStyle = .custom
+            rootViewController.transitioningDelegate = customTransitioningDelegate
 
-        topViewController.present(rootViewController, animated: true)
+            topViewController.present(rootViewController, animated: true)
+        } else {
+            UIApplication.shared.open(url, options: [:]) { wasSuccessful in
+                if !wasSuccessful {
+                    completion(.state(.appClipCouldNotBeLaunched))
+                    return
+                }
+                completion(nil)
+            }
+        }
     }
 }
 
@@ -341,20 +355,35 @@ public struct WellspentSDKConfiguration {
     ///
     let environment: WellspentSDKEnvironment
 
+
+    /// This is `true` by default, meaning that the App Clip will be launched
+    /// via a web URL which links to the App Clip to be opened.
+    ///
+    /// - Warning: This is only supposed to be used for internal development.
+    ///   Do not change this in a production build of your app unless explicitly advised.
+    ///
+    let isUsingUniversalLinks: Bool
+
     public init(
         partnerId: String,
         localizedAppName: String,
         redirectionURL: URL,
+        isUsingUniversalLinks: Bool = true,
         environment: WellspentSDKEnvironment = .production
     ) {
         self.partnerId = partnerId
         self.localizedAppName = localizedAppName
         self.redirectionURL = redirectionURL
         self.environment = environment
+        self.isUsingUniversalLinks = isUsingUniversalLinks
     }
 
     var appClipURL: URL {
-        URL(string: "https://wellspent-api.netlify.app/")!
+        if isUsingUniversalLinks {
+           return URL(string: "https://wellspent-api.netlify.app/")!
+       } else {
+           return URL(string: "https://appclip.apple.com/id?p=co.mindamins.wellspent.Clip")!
+       }
     }
 }
 
