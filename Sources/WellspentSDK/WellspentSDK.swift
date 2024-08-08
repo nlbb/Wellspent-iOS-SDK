@@ -368,7 +368,7 @@ public struct WellspentSDKConfiguration {
         partnerId: String,
         localizedAppName: String,
         redirectionURL: URL,
-        isUsingUniversalLinks: Bool = true,
+        isUsingUniversalLinks: Bool = false,
         environment: WellspentSDKEnvironment = .production
     ) {
         self.partnerId = partnerId
